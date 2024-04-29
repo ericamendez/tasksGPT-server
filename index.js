@@ -3,8 +3,7 @@ const { startStandaloneServer } = require('@apollo/server/standalone')
 const { v1: uuid } = require('uuid')
 const { GraphQLError } = require('graphql')
 const mongoose = require('mongoose')
-const Book = require('./models/book')
-const Author = require('./models/author')
+const Task = require('./models/task')
 const User = require('./models/user')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs');
@@ -26,26 +25,13 @@ mongoose.connect(MONGODB_URI)
     console.log('error connection to MongoDB:', error.message)
   })
 
-let test = async () => {
-  const Books = await Book.find({})
-  return Books
-}
-test()
-
 const typeDefs = `
-  type Book {
+  type Task {
     title: String!
-    author: Author!
-    published: Int
-    genres: [String]
     id: ID!
-  }
-
-  type Author {
-    name: String!
-    id: ID!
-    born: Int
-    bookCount: Int
+    description: String
+    priority: String
+    status: String
   }
 
   type User {
@@ -59,29 +45,22 @@ const typeDefs = `
 
   type Query {
     dummy: Int
-    bookCount: Int!
-    authorCount: Int!
-    allBooks: [Book!]!
-    allAuthors: [Author!]!
+    taskCount: Int!
+    allTasks: [Task!]!
     me: User
   }
 
-  input SignupInput {
-    username: String!
-    password: String!
-  }
-
   type Mutation {
-    addBook(
+    addTask(
       title: String!
-      author: String!
-      published: Int
-      genres: [String]
-    ): Book
+      description: String
+      priority: String
+      status: String
+    ): Task
     editBorn(
       name: String!
       born: Int!
-    ): Author
+    ): Task
     createUser(
       username: String!
       password: String!
@@ -90,63 +69,52 @@ const typeDefs = `
       username: String!
       password: String!
     ): Token
-    signup(input: SignupInput!): User
   }
 `
 
 const resolvers = {
   Query: {
     dummy: () => 0,
-    bookCount: () => Books.collection.countDocuments(),
-    authorCount: () => authors.collection.countDocuments(),
-    allBooks: async () => {
-      return Book.find({})
-    },
-    allAuthors: async () => {
-      return Author.find({})
+    taskCount: () => tasks.collection.countDocuments(),
+    allTasks: async () => {
+      return Task.find({})
     },
     me: (root, args, context) => {
       return context.currentUser
     }
   },
-  Author: {    
-    bookCount: async (root) => {
-      const foundAuthor = await Author.findOne({ name: root.name })
-      const foundBooks = await Book.find({ author: foundAuthor.id }) 
-      return foundBooks.length
-    }
-  },
+
   Mutation: {
-    addBook: async (root, args) => {
-      const foundAuthor = await Author.findOne({ name: args.author.name })
+    addTask: async (root, args) => {
+      const foundTask = await Task.findOne({ title: args.task.title })
       console.log('argeesssssss',args)
-      if (!foundAuthor) {
-        const author = new Author({ name: args.author })
+      if (!foundTask) {
+        const task = new Task({ title: args.task })
         try {
-          await author.save()
+          await task.save()
         } catch (error) {
           console.log('error', error);
         }
       }
 
-      const foundAuthor2 = await Author.findOne({ name: args.author.name })
-      const book = new Book({ ...args, author: foundAuthor2 })
+      const foundTask2 = await Task.findOne({ title: args.task.title })
+      const task = new Task({ ...args, task: foundTask2 })
 
       try {
-        await book.save()
+        await task.save()
       } catch (error) {
         console.log('error', error);
       }
 
-      return book
+      return task
     },
     editBorn: async (root, args) => {
 
-      const author = await Author.findOne({ name: args.name })
-      author.born = args.born
+      const task = await Task.findOne({ name: args.name })
+      task.born = args.born
 
       try {
-        await author.save()
+        await task.save()
       } catch (error) {
         throw new GraphQLError('Saving number failed', {
           extensions: {
@@ -157,7 +125,7 @@ const resolvers = {
         })
       }
 
-      return author
+      return task
     },
     createUser: async (root, args) => {
       try {
