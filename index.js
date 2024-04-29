@@ -7,6 +7,7 @@ const Book = require('./models/book')
 const Author = require('./models/author')
 const User = require('./models/user')
 const jwt = require('jsonwebtoken')
+const bcrypt = require('bcryptjs');
 
 mongoose.set('strictQuery', false)
 
@@ -49,7 +50,6 @@ const typeDefs = `
 
   type User {
     username: String!
-    favoriteGenre: String
     id: ID!
   }
   
@@ -66,6 +66,11 @@ const typeDefs = `
     me: User
   }
 
+  input SignupInput {
+    username: String!
+    password: String!
+  }
+
   type Mutation {
     addBook(
       title: String!
@@ -79,12 +84,13 @@ const typeDefs = `
     ): Author
     createUser(
       username: String!
-      favoriteGenre: String
+      password: String!
     ): User
     login(
       username: String!
       password: String!
     ): Token
+    signup(input: SignupInput!): User
   }
 `
 
@@ -154,36 +160,47 @@ const resolvers = {
       return author
     },
     createUser: async (root, args) => {
-      const user = new User({ username: args.username })
-  
-      return user.save()
-        .catch(error => {
-          throw new GraphQLError('Creating the user failed', {
-            extensions: {
-              code: 'BAD_USER_INPUT',
-              invalidArgs: args.username,
-              error
-            }
-          })
-        })
+      try {
+        const {username, password } = args;
+        // Check if user with the provided email already exists
+        console.log('args', args)
+        const existingUser = await User.findOne({ username });
+        if (existingUser) {
+          throw new Error('User with this email already exists');
+        }
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
+        // Create a new user
+        const newUser = new User({ username, password: hashedPassword });
+        await newUser.save();
+        return newUser;
+      } catch (error) {
+        throw new Error(error);
+      }
     },
     login: async (root, args) => {
-      const user = await User.findOne({ username: args.username })
-  
-      if ( !user || args.password !== 'secret' ) {
-        throw new GraphQLError('wrong credentials', {
-          extensions: {
-            code: 'BAD_USER_INPUT'
-          }
-        })        
+      try {
+        const { username, password } = args;
+        // Find user by email
+        const user = await User.findOne({ username });
+        if (!user) {
+          throw new Error('Invalid credentials');
+        }
+        // Validate password
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+          throw new Error('Invalid credentials');
+        }
+        // Generate JWT token
+        const userForToken = {
+          username: user.username,
+          id: user._id,
+        }
+    
+        return { value: jwt.sign(userForToken, process.env.JWT_SECRET) }
+      } catch (error) {
+        throw new Error(error);
       }
-  
-      const userForToken = {
-        username: user.username,
-        id: user._id,
-      }
-  
-      return { value: jwt.sign(userForToken, process.env.JWT_SECRET) }
     },
   }
 }
