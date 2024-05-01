@@ -86,27 +86,26 @@ const resolvers = {
 
   Mutation: {
     addTask: async (root, args) => {
-      console.log('args', args)
-      const foundTask = await Task.findOne({ title: args.title })
-      if (!foundTask) {
-        const task = new Task({ title: args.title })
-        try {
-          await task.save()
-        } catch (error) {
-          console.log('error', error);
-        }
-      }
-
-      const foundTask2 = await Task.findOne({ title: args.title })
-      const task = new Task({ ...args, task: foundTask2 })
-
       try {
-        await task.save()
+        // Check if a task with the given title already exists
+        const existingTask = await Task.findOne({ title: args.title });
+        
+        if (existingTask) {
+          // Task with the same title already exists, you can choose to update it or throw an error
+          throw new Error('Task with the same title already exists');
+        }
+        
+        // Create and save a new task
+        const newTask = new Task({ ...args });
+        await newTask.save();
+        
+        console.log('newTask', newTask)
+        return newTask;
       } catch (error) {
-        console.log('error', error);
+        // Handle errors
+        console.error('Error adding task:', error);
+        throw new Error('Failed to add task');
       }
-
-      return task
     },
     editBorn: async (root, args) => {
 
