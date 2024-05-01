@@ -86,10 +86,10 @@ const resolvers = {
 
   Mutation: {
     addTask: async (root, args) => {
-      const foundTask = await Task.findOne({ title: args.task.title })
-      console.log('argeesssssss',args)
+      console.log('args', args)
+      const foundTask = await Task.findOne({ title: args.title })
       if (!foundTask) {
-        const task = new Task({ title: args.task })
+        const task = new Task({ title: args.title })
         try {
           await task.save()
         } catch (error) {
@@ -97,7 +97,7 @@ const resolvers = {
         }
       }
 
-      const foundTask2 = await Task.findOne({ title: args.task.title })
+      const foundTask2 = await Task.findOne({ title: args.title })
       const task = new Task({ ...args, task: foundTask2 })
 
       try {
@@ -110,7 +110,7 @@ const resolvers = {
     },
     editBorn: async (root, args) => {
 
-      const task = await Task.findOne({ name: args.name })
+      const task = await Task.findOne({ name: args.title })
       task.born = args.born
 
       try {
