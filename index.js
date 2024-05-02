@@ -10,6 +10,8 @@ const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require("path");
 const { OpenAI } = require('openai');
+const cors = require('cors')
+
 
 mongoose.set('strictQuery', false)
 
@@ -17,8 +19,6 @@ mongoose.set('strictQuery', false)
 require('dotenv').config()
 
 const MONGODB_URI = process.env.MONGODB_URI
-
-console.log('connecting to', MONGODB_URI)
 
 mongoose.connect(MONGODB_URI)
   .then(() => {
@@ -35,6 +35,8 @@ const typeDefs = `
     description: String
     priority: String
     status: String
+    user: String!
+    complete: Boolean
   }
 
   type User {
@@ -59,10 +61,16 @@ const typeDefs = `
       description: String
       priority: String
       status: String
+      user: String!
+      complete: Boolean
     ): Task
-    editBorn(
-      name: String!
-      born: Int!
+    editComplete(
+      id: String!
+      complete: Boolean
+    ): Task
+    editDescription(
+      id: String!
+      description: String
     ): Task
     createUser(
       username: String!
@@ -111,18 +119,39 @@ const resolvers = {
         throw new Error('Failed to add task');
       }
     },
-    editBorn: async (root, args) => {
+    editComplete: async (root, args) => {
 
-      const task = await Task.findOne({ name: args.title })
-      task.born = args.born
+      console.log(args.id);
+      const task = await Task.findOne({ _id: args.id })
+      console.log(task);
+      task.complete = args.complete
 
       try {
         await task.save()
       } catch (error) {
-        throw new GraphQLError('Saving number failed', {
+        throw new GraphQLError('toggling complete not working', {
           extensions: {
             code: 'BAD_USER_INPUT',
-            invalidArgs: args.name,
+            invalidArgs: args.id,
+            error
+          }
+        })
+      }
+
+      return task
+    },
+    editDescription: async (root, args) => {
+      const task = await Task.findOne({ _id: args.id })
+      console.log(task);
+      task.description = args.description
+
+      try {
+        await task.save()
+      } catch (error) {
+        throw new GraphQLError('description not saved', {
+          extensions: {
+            code: 'BAD_USER_INPUT',
+            invalidArgs: args.id,
             error
           }
         })
@@ -181,28 +210,7 @@ const server = new ApolloServer({
   resolvers,
 })
 
-startStandaloneServer(server, {
-  listen: { port: 4001 },
-}).then(({ url }) => {
-  console.log(`Server ready at ${url}`)
-})
-
-
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-// async function main() {
-//   const completion = await openai.chat.completions.create({
-//     messages: [{ "role": "system", "content": "You are a helpful assistant." },
-//     { "role": "user", "content": "Who won the world series in 2020?" },
-//     { "role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020." },
-//     { "role": "user", "content": "Where was it played?" }],
-//     model: "gpt-3.5-turbo",
-//   });
-
-//   console.log(completion.choices[0]);
-// }
-
-const speechFile = path.resolve("./recordings/hi.m4a");
 
 async function chatGPTDescriptionCompletion(title) {
   const completion = await openai.chat.completions.create({
@@ -220,4 +228,10 @@ async function chatGPTDescriptionCompletion(title) {
   return completion.choices[0].message.content
 }
 
-chatGPTDescriptionCompletion();
+const PORT = process.env.PORT || 4001
+
+startStandaloneServer(server, {
+  listen: { port: PORT },
+}).then(({ url }) => {
+  console.log(`Server ready at ${url}`)
+})

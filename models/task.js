@@ -18,6 +18,13 @@ const schema = new mongoose.Schema({
   status: {
     type: String,
   },
+  user: {
+    type: String,
+    required: true
+  },
+  complete: {
+    type: Boolean
+  }
 })
 
 schema.plugin(uniqueValidator)
