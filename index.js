@@ -240,8 +240,12 @@ async function startApolloServer() {
   await server.start(); // Start Apollo Server
 
   const app = express(); // Create an Express app
+  app.use(cors())
 
-  server.applyMiddleware({ app }); // Apply Apollo Server middleware to Express app
+  // server.applyMiddleware({ app }); // Apply Apollo Server middleware to Express app
+
+  server.applyMiddleware({ app, path: '/graphql' });
+
 
   // Serve the 'dist' folder statically
   app.use(express.static(path.join(__dirname, 'build')));
