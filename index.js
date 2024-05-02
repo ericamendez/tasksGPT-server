@@ -244,7 +244,7 @@ async function startApolloServer() {
   server.applyMiddleware({ app }); // Apply Apollo Server middleware to Express app
 
   // Serve the 'dist' folder statically
-  app.use(express.static(path.join(__dirname, 'dist')));
+  app.use(express.static(path.join(__dirname, 'build')));
 
   const PORT = process.env.PORT || 4001;
 
