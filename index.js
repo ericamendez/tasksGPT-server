@@ -83,6 +83,7 @@ const typeDefs = `
     autogenerate(
       title: String!
     ): String
+    deleteCompletedTasks: String
   }
 `
 
@@ -210,6 +211,15 @@ const resolvers = {
       console.log("correct place", text);
       return text
     },
+    deleteCompletedTasks: async () => {
+      try {
+        // Find and delete all tasks with complete: true
+        await Task.deleteMany({ complete: true });
+        return "Completed tasks deleted successfully.";
+      } catch (error) {
+        throw new Error("Failed to delete completed tasks.");
+      }
+    }
   }
 }
 
