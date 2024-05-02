@@ -80,6 +80,9 @@ const typeDefs = `
       username: String!
       password: String!
     ): Token
+    autogenerate(
+      title: String!
+    ): String
   }
 `
 
@@ -202,6 +205,11 @@ const resolvers = {
         throw new Error(error);
       }
     },
+    autogenerate: async (root, args) => {
+      const text = await chatGPTDescriptionCompletion(args.title)
+      console.log("correct place", text);
+      return text
+    },
   }
 }
 
@@ -219,7 +227,7 @@ async function chatGPTDescriptionCompletion(title) {
         role: "system",
         content: "You are a helpful assistant designed to output a string description.",
       },
-      { role: "user", content: `I am creating a tasks list, can you write a short description of the task based on the title: ${title}` },
+      { role: "user", content: `I am creating a tasks list, breakdown the task based on the title: ${title}` },
     ],
     model: "gpt-3.5-turbo-0125",
     response_format: { type: "text" },
