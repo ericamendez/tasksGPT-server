@@ -72,6 +72,14 @@ const typeDefs = `
       id: String!
       description: String
     ): Task
+    editPriority(
+      id: String!
+      priority: String
+    ): Task
+    editStatus(
+      id: String!
+      status: String
+    ): Task
     createUser(
       username: String!
       password: String!
@@ -153,6 +161,43 @@ const resolvers = {
         await task.save()
       } catch (error) {
         throw new GraphQLError('description not saved', {
+          extensions: {
+            code: 'BAD_USER_INPUT',
+            invalidArgs: args.id,
+            error
+          }
+        })
+      }
+
+      return task
+    },
+    editPriority: async (root, args) => {
+      const task = await Task.findOne({ _id: args.id })
+      task.priority = args.priority
+
+      try {
+        await task.save()
+      } catch (error) {
+        throw new GraphQLError('Priority not saved', {
+          extensions: {
+            code: 'BAD_USER_INPUT',
+            invalidArgs: args.id,
+            error
+          }
+        })
+      }
+
+      return task
+    },
+    editStatus: async (root, args) => {
+      const task = await Task.findOne({ _id: args.id })
+      console.log(task);
+      task.status = args.status
+
+      try {
+        await task.save()
+      } catch (error) {
+        throw new GraphQLError('status not saved', {
           extensions: {
             code: 'BAD_USER_INPUT',
             invalidArgs: args.id,
